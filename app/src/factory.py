@@ -25,8 +25,8 @@ class Boto3ClientFactory:
     def create(service):
         if int(setting.ENV_DIC[ImportEnvKeyEnum.USE_PROFILE.value]):
             # profileを使う
-            profile = setting.ENV_DIC[ImportEnvKeyEnum.USE_PROFILE.value]
-            return Session(profile_name=profile).resource(service)
+            profile = setting.ENV_DIC[ImportEnvKeyEnum.PROFILE.value]
+            return Session(profile_name=profile).client(service)
 
         else:
             # profileを使わない
