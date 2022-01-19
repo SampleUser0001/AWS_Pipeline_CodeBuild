@@ -21,40 +21,31 @@ logger.setLevel(DEBUG)
 logger.addHandler(handler)
 logger.propagate = False
 
+OUTPUT_FILE_PATH = os.path.join(PYTHON_APP_HOME, *['output', 'result.tsv'])
+
 if __name__ == '__main__':
-    codepieline_client = Factory.create('codepipeline')
-    
-    result_dict_list = []
-    pipeline_response = codepieline_client.list_pipelines()
-    codebuild_name_list = []
-    for pipeline in pipeline_response['pipelines']:
-        # Pipeline名取得
-        pipeline_name = pipeline['name']
-
-        # 最終結果用のdict
-        pipeline_result_dict = {}
-        pipeline_result_dict['pipeline_name'] = pipeline_name
-
-        # CodeBuild名の取得
-        for stage in codepieline_client.get_pipeline(name=pipeline_name)['pipeline']['stages']:
-            if stage['name'] == 'Build':
-                codebuild_name = stage['actions'][0]['configuration']['ProjectName']
-                pipeline_result_dict['codebuild_name'] = codebuild_name
-                codebuild_name_list.append(codebuild_name)
-
-        result_dict_list.append(pipeline_result_dict)
-                
-
-    codebuild_client = Factory.create('codebuild')
-
     # CodeBuild取得。
-    for codebuild_name in codebuild_name_list:
-        # CodeBuild名は揃っているので、まとめて渡すこともできるが、buildspecと1対１にするのが容易なので、１件ずつ取得。
-        # まとめたほうが早いかもしれないが、大した件数ではないはず。
-        for codebuild in codebuild_client.batch_get_projects(names=[codebuild_name])['projects']:
-            if len(codebuild) != 0:
-                for result_dict in result_dict_list:
-                    if 'codebuild_name' in result_dict and result_dict['codebuild_name'] == codebuild_name:
-                        result_dict['buildspec'] = codebuild['source']['buildspec']
-
-    print(result_dict_list)
+    codebuild_client = Factory.create('codebuild')
+    codebuild_list = codebuild_client.batch_get_projects(
+        names = codebuild_client.list_projects(
+            sortBy='CREATED_TIME',
+            sortOrder='ASCENDING'
+        )['projects']
+    )
+        
+    # CodeCommitとbuildspec.ymlファイルのパスを取得する
+    with open(OUTPUT_FILE_PATH, mode='w', newline='') as f:
+        f.write('{}\t{}\t{}\t{}'.format(
+                'CodeBuild',
+                'type',
+                'Repository',
+                'buildspec'
+            )
+        )
+        for codebuild_info in codebuild_list['projects']:
+            f.write('{}\t{}\t{}\t{}\r\n'.format(
+                codebuild_info['name'],
+                codebuild_info['source']['type'],
+                codebuild_info['source']['location'] if 'location' in codebuild_info['source'] else '-',
+                codebuild_info['source']['buildspec'] if 'buildspec' in codebuild_info['source'] else '-')
+            )

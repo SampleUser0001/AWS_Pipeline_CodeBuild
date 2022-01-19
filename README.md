@@ -22,7 +22,5 @@ sh start.sh
 ## aws-cli
 
 ```sh
-aws codepipeline list-pipelines
-aws codepipeline get-pipeline --name ${CodePipeline名}
-aws codebuild batch-get-projects --name ${CodeBuild名}
+aws codebuild list-projects
 ```

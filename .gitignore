@@ -131,3 +131,6 @@ dmypy.json
 # log
 log/*
 !log/.gitkeep
+
+# App
+/app/output/result.tsv
